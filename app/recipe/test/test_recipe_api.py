@@ -103,3 +103,42 @@ class PrivateRecipeApiTest(TestCase):
         serializer = RecipeDetailSerializer(recipe)
 
         self.assertEqual(response.data, serializer.data)
+
+    def test_create_basic_recipe(self):
+        payload = {
+            'title': 'Chocolate cheescake',
+            'time_minutes': 30,
+            'price': 5.00
+        }
+
+        response = self.client.post(RECIPES_URL, payload)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        recipe = Recipe.objects.get(id=response.data['id'])
+
+        self.assertEqual(payload['title'], recipe.title)
+        self.assertEqual(payload['time_minutes'], recipe.time_minutes)
+        self.assertEqual(payload['price'], recipe.price)
+
+    def test_create_recipe_with_tags(self):
+        tag1 = Tag.objects.create(user=self.user, name='Vegan')
+        tag2 = Tag.objects.create(user=self.user, name='Dessert')
+
+        payload = {
+            'title': 'Avocado lime chesscake',
+            'time_minutes': 60,
+            'price': 20.00,
+            'tags': [tag1.id, tag2.id]
+        }
+
+        response = self.client.post(RECIPES_URL, payload)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        recipe = Recipe.objects.get(id=response.data['id'])
+        tags = Tag.objects.all()
+        self.assertEqual(tags.count(), 2)
+        self.assertIn(tag1, tags)
+        self.assertIn(tag2, tags)
+
+        self.assertIn(tag1, recipe.tags.all())
+        self.assertIn(tag2, recipe.tags.all())
